@@ -1,12 +1,19 @@
 import "./appointments.css";
 import Navbar from "../../components/navbar/navbar";
 import { Link, useNavigate } from "react-router-dom";
-import { doctors, appointments } from "../../constants/data.js"
 import Appointment from "../../components/appointment/appointment.jsx";
+import { useEffect, useState } from "react";
+import api from "../../constants/api.js";
 
 function Appointments() {
 
     const navigate = useNavigate();
+    const [appointments, setAppointments] = useState([]);
+    const [doctors, setDoctors] = useState([]);
+
+    const [idDoctor, setIdDoctor] = useState('');
+    const [dtStart, setDtStart] = useState('');
+    const [dtEnd, setDtEnd] = useState('');
 
     function clickEdit(id_appointment) {
         navigate(`/appointments/edit/${id_appointment}`);
@@ -15,6 +22,63 @@ function Appointments() {
     function clickDelete(id_appointment) {
         alert("Apagar agendamento " + id_appointment);
     }
+    
+    async function LoadDoctors() {
+        try {
+            const response = await api.get('/doctors');
+            if (response.data)
+                setDoctors(response.data);
+            else
+                alert("Erro ao carregar os médicos.");
+
+        } catch (error) {
+            if (error.response?.data.message){
+                if (error.response?.status === 401)
+                    return navigate('/');
+ 
+                 alert(error.response?.data.error);
+            } else
+                alert("Erro ao carregar os médicos. Tente novamente mais tarde.");
+        }
+    }
+
+    async function LoadAppointments() {
+        try {
+            const response = await api.get('/admin/appointments', {
+                params: {
+                    id_doctor: idDoctor,
+                    dt_start: dtStart,
+                    dt_end: dtEnd
+                }
+            });
+
+            if (response.data)
+                setAppointments(response.data);
+            else
+                alert("Erro ao carregar os agendamentos.");
+
+        } catch (error) {
+            if (error.response?.data.error){
+                
+                if (error.response?.status === 401)
+                   return navigate('/');
+
+                alert(error.response?.data.error);
+            }
+            
+              else
+                alert("Erro ao carregar os agendamentos. Tente novamente mais tarde.");            
+        }
+    }
+
+    function ChangeDoctor(event) {
+        setIdDoctor(event.target.value);
+    }
+
+    useEffect(() => {
+        LoadDoctors();
+        LoadAppointments();
+    }, []);
 
     return <div className="container-fluid mt-page">
         <Navbar />
@@ -28,12 +92,14 @@ function Appointments() {
             </div>
 
             <div className="d-flex justify-content-end mb-5">
-                <input id="startDate" className="form-control" type="date" />
+                <input id="startDate" className="form-control" type="date"
+                    onChange={(event) => setDtStart(event.target.value)} />
                 <span className="m-2">Até</span>
-                <input id="endDate" className="form-control" type="date" />
+                <input id="endDate" className="form-control" type="date"
+                    onChange={(event) => setDtEnd(event.target.value)} />
 
                 <div className="form-control ms-3 me-3">
-                    <select name="doctor" id="doctor">
+                    <select name="doctor" id="doctor" value={idDoctor} onChange={ChangeDoctor}>
                         <option value="">Todos os médicos</option>
 
                         {
@@ -46,7 +112,8 @@ function Appointments() {
                     </select>
                 </div>
 
-                <button className="btn btn-primary">Filtrar</button>
+                <button className="btn btn-primary" type="buttin"
+                    onClick={LoadAppointments}>Filtrar</button>
             </div>
 
         </div>
